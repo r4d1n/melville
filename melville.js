@@ -1,69 +1,53 @@
-let fs = require('fs');
-let _ = require('lodash');
+let fs = require('fs')
+, readline = require('readline')
+, _ = require('lodash')
 
-let targetDir = './moby/';
-let output = 'whales.json';
+let output = fs.createWriteStream('whales.json', {flags: 'w'});
 
+let regex = /(\w+)\s(whale)\s(\w+)/gim;
+let directory = './text/mobydick/';
 
-var Transform = require('stream').Transform;
-
-
-fs.readdir(targetDir, (err, files) => {
-  if (err) console.warn(err);
-  _.each(files, (val, index) => {
-    let rs = fs.createReadStream(targetDir+val)
-    // let rs = fs.createReadStream('./moby/moby-007.txt');
-    rs.readable = true;
-    rs.setEncoding('utf8');
-
-    let ws = fs.createWriteStream('outputs/' + index + '-' + output, {encoding: 'utf8'});
-    ws.writeable = true;
-
-    var parser = new Transform({ encoding: 'utf8'});
-    parser._transform = function(data, encoding, done) {
-      // console.log(whaleWords(data));
-      let parsed = JSON.stringify(whaleWords(data))
-      this.push(parsed);
-      done();
-    };
-
-    rs
-    .pipe(parser)
-    .pipe(ws);
+function makePaths (dir) {
+  let paths = fs.readdirSync(dir);
+  return paths.filter((element) => {
+    return !/README/.test(element);
+  }).map((element) => {
+    return dir+element;
   })
-})
-
-//
-// // fs.readdir(targetDir, parseFiles);
-//
-//
-//
-//     rs.on('error', (err) => {
-//       console.warn(err);
-//     })
-//     rs.on('data', (chunk) => {
-//       let data = whaleWords(chunk);
-//       // let match = { file : whaleWords(chunk) } ;
-//     })
-//     .pipe(writeOut);
-//     rs.on('end', function() {
-//       console.log('rs end')
-//       writeOut.end()
-//     })
-//
-
-
-function whaleWords(input) {
-  // console.log('whale words input: ' + input)
-  let entries = [];
-  let exec = (/\s(\w+)\s(whale)\b(\w+)\s/gim.exec(input));
-  if (exec) {
-    // console.log(exec)
-    let i = 1;
-    while (i < exec.length) {
-      entries.push(exec[i]);
-      i++;
-    }
-  }
-  return entries;
 }
+
+function formatJSON (key, val) {
+
+}
+
+function run (pattern, dir, target) {
+  let counter = 0;
+  let paths = makePaths(dir)
+  _.each(paths, (el) => {
+    let input = fs.createReadStream(el);
+    let rl = readline.createInterface({
+      input: input,
+      output: output,
+      terminal: false
+    });
+
+    rl.on('line', function(line) {
+      let match = regex.exec(line);
+      if (match) {
+        counter++;
+        console.log(counter);
+        let entry = {};
+        entry[el] = [];
+        let i = 1;
+        while (i < match.length - 1) {
+          entry[el].push(match[i]);
+          i++;
+        }
+        entry = JSON.stringify(match) + '\n';
+        output.write(entry);
+      }
+    })
+  })
+}
+
+run(regex, directory, output);
