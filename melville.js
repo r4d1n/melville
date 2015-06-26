@@ -5,45 +5,11 @@ let fs = require('fs')
 
 let target = 'whales.json';
 
-//let append = fs.createWriteStream(target, {flags: 'a'});
-
 let regex = /(\w+)\s(whale)\s(\w+)/gim;
 let directory = './text/mobydick/';
-
-//let rs = fs.createReadStream(directory+'moby-009.txt');
 let ws = fs.createWriteStream(target, {flags: 'w'});
-//let ws = fs.createWriteStream('test.txt', {flags: 'w'});
 
-//rs.pipe(ws);
-// function checkFiles(files) {
-//   if (files.length > 0) {
-//     // do something
-//   } else {
-//
-//   }
-// }
-
-function getMatches(chunk, path) {
-  let match = regex.exec(chunk);
-  if (match) {
-    let chapter = /moby-(\d+)/.exec(path)[1];
-    //let chapter = '009';
-    //console.log(counter);
-    //let entry = { chapter, words : []}
-    let entry = {chapter : chapter, words: []};
-    // let entry = {match: counter, chapter : chapter, words: []};
-    let i = 1;
-    while (i < 4) {
-      entry.words.push(match[i]);
-      i++;
-    }
-    return entry;
-  } else {
-    return null;
-  }
-}
-
-function dirPipe (dir) {
+function matchDir (dir, pattern) {
   let files = util.makePaths(dir)
   let matches = [];
   let counter = 0;
@@ -56,11 +22,10 @@ function dirPipe (dir) {
       } else {
         let path = files.shift();
         let rs = fs.createReadStream(path)
-
         rs
         .pipe(split())
         .on('data', (chunk) => {
-          var entry = getMatches(chunk, path);
+          let entry = util.getMatches(chunk, path, pattern);
           if(entry) {
             entry.match = ++counter;
             matches.push(entry);
@@ -74,16 +39,16 @@ function dirPipe (dir) {
         check();
     } else {
       reject(new Error('no result!'))
-      // resolve(matches);
     }
 
   });
 
 }
 
-dirPipe(directory).then((matches) => {
+matchDir(directory, regex).then((matches) => {
+  let finalCount = matches.length;
   ws.write(JSON.stringify(matches))
-  // console.log(matches);
+  console.log('parsing complete \n' + finalCount + ' matches found');
 }).catch((err) => {
   console.log(err);
 })
