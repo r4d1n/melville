@@ -1,67 +1,44 @@
 let fs = require('fs')
-, readline = require('readline')
 , _ = require('lodash')
+, split = require('split')
+, util = require('./util')
 
 let target = 'whales.json';
-let output = fs.createWriteStream(target, {flags: 'w'});
-let append = fs.createWriteStream(target, {flags: 'a'});
+
+//let append = fs.createWriteStream(target, {flags: 'a'});
 
 let regex = /(\w+)\s(whale)\s(\w+)/gim;
 let directory = './text/mobydick/';
-let bigArr = [];
 
-function makePaths (dir) {
-  let paths = fs.readdirSync(dir);
-  return paths.filter((element) => {
-    return !/README/.test(element);
-  }).map((element) => {
-    return dir+element;
-  })
-}
+let rs = fs.createReadStream(directory+'moby-009.txt')
+//let ws = fs.createWriteStream(target, {flags: 'w'});
+let ws = fs.createWriteStream('test.txt', {flags: 'w'});
 
-function run (pattern, dir, cb) {
-  let counter = 0;
-  let paths = makePaths(dir)
-  _.each(paths, (el) => {
-    let input = fs.createReadStream(el);
-    let rl = readline.createInterface({
-      input: input,
-      //output: output,
-      terminal: false
-    });
+//rs.pipe(ws);
+let counter = 0;
+let matches = [];
 
-    rl.on('line', function(line) {
-      let obj = {};
-      let match = regex.exec(line);
-      if (match) {
-        counter++;
-        let chapter = /moby-(\d+)/.exec(el)[1];
-        obj["match #" + counter] = {};
-        //console.log(counter);
-        let entry = { chapter, words : []}
-        let i = 1;
-        while (i < match.length) {
-          entry.words.push(match[i]);
-          i++;
-        }
-        entry.chapter = chapter;
-        obj["match #" + counter] = entry;
-        if (counter === 1) {
-          output.write("\n" + JSON.stringify(obj)); 
-        } else {
-          output.write("\n," + JSON.stringify(obj)); 
-        }
-      }
-    })
-    if (el === paths[paths.length - 1]) rl.close();
-  })
-  if (cb) cb();
-}
-
-output.write('[', run(regex, directory, () => {
-  append.write(']', () => {
-    console.log('finished');
-  });
-}));
-
-//append.write('aslkjfla;sjfl;kasjflk;ajsfdasa', console.log(this));
+rs
+.pipe(split())
+.on('data', (chunk) => {
+  let obj = {};
+  let match = regex.exec(chunk);
+  if (match) {
+    counter++;
+    //let chapter = /moby-(\d+)/.exec(el)[1];
+    let chapter = '009';
+    obj["match #" + counter] = {};
+    //console.log(counter);
+    //let entry = { chapter, words : []}
+    let entry = {match: counter, chapter : chapter, words: []};
+    let i = 1;
+    while (i < 4) {
+      entry.words.push(match[i]);
+      i++;
+    }
+    matches.push(entry);
+  }
+})
+.on('end', () => {
+  ws.write(JSON.stringify(matches))
+})
