@@ -2,10 +2,13 @@ let fs = require('fs')
 , readline = require('readline')
 , _ = require('lodash')
 
-let output = fs.createWriteStream('whales.json', {flags: 'w'});
+let target = 'whales.json';
+let output = fs.createWriteStream(target, {flags: 'w'});
+let append = fs.createWriteStream(target, {flags: 'a'});
 
 let regex = /(\w+)\s(whale)\s(\w+)/gim;
 let directory = './text/mobydick/';
+let bigArr = [];
 
 function makePaths (dir) {
   let paths = fs.readdirSync(dir);
@@ -16,38 +19,42 @@ function makePaths (dir) {
   })
 }
 
-function formatJSON (key, val) {
-
-}
-
-function run (pattern, dir, target) {
+function run (pattern, dir, cb) {
   let counter = 0;
   let paths = makePaths(dir)
   _.each(paths, (el) => {
     let input = fs.createReadStream(el);
     let rl = readline.createInterface({
       input: input,
-      output: output,
+      //output: output,
       terminal: false
     });
 
+
     rl.on('line', function(line) {
+      let obj = {};
       let match = regex.exec(line);
       if (match) {
         counter++;
-        console.log(counter);
-        let entry = {};
-        entry[el] = [];
+        let chapter = /moby-(\d+)/.exec(el)[1];
+        obj["match #" + counter] = {};
+        //console.log(counter);
+        let entry = { chapter, words : []}
         let i = 1;
-        while (i < match.length - 1) {
-          entry[el].push(match[i]);
+        while (i < match.length) {
+          entry.words.push(match[i]);
           i++;
         }
-        entry = JSON.stringify(match) + '\n';
-        output.write(entry);
-      }
-    })
+        entry.chapter = chapter;
+        obj["match #" + counter] = entry;
+          output.write(JSON.stringify(obj) + ",\n"); 
+        }
+      })
   })
+  if (cb) cb();
 }
 
-run(regex, directory, output);
+output.write('[', run(regex, directory, () => {
+ console.log('finished');
+}));
+
