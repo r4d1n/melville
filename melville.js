@@ -30,7 +30,6 @@ function run (pattern, dir, cb) {
       terminal: false
     });
 
-
     rl.on('line', function(line) {
       let obj = {};
       let match = regex.exec(line);
@@ -47,14 +46,22 @@ function run (pattern, dir, cb) {
         }
         entry.chapter = chapter;
         obj["match #" + counter] = entry;
-          output.write(JSON.stringify(obj) + ",\n"); 
+        if (counter === 1) {
+          output.write("\n" + JSON.stringify(obj)); 
+        } else {
+          output.write("\n," + JSON.stringify(obj)); 
         }
-      })
+      }
+    })
+    if (el === paths[paths.length - 1]) rl.close();
   })
   if (cb) cb();
 }
 
 output.write('[', run(regex, directory, () => {
- console.log('finished');
+  append.write(']', () => {
+    console.log('finished');
+  });
 }));
 
+//append.write('aslkjfla;sjfl;kasjflk;ajsfdasa', console.log(this));
